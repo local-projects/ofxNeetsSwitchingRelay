@@ -41,7 +41,7 @@ ofxNeetsSwitchingRelay::ofxNeetsSwitchingRelay(){
 
 //------------------------------------------------------------------
 ofxNeetsSwitchingRelay::~ofxNeetsSwitchingRelay(){
-
+    ofRemoveListener(ofEvents().update, this, &ofxNeetsSwitchingRelay::update);
 
 };
 
@@ -51,15 +51,38 @@ ofxNeetsSwitchingRelay::~ofxNeetsSwitchingRelay(){
 void ofxNeetsSwitchingRelay::setup(string ip, int port, int uid) {
 	
     
-    hostURL = "http://"+ip+":"+ofToString(port);
+    hostIP = ip;
     controlPort = port;
     unitId = uid;
     
     
-    client.setup(ip,port,false);
+    client.setup(hostIP,controlPort,false);
 	client.setMessageDelimiter("\r\n");
+    
+    
+    ofAddListener(ofEvents().update, this, &ofxNeetsSwitchingRelay::update);
 }
 
+
+void ofxNeetsSwitchingRelay::update(ofEventArgs &e){
+
+
+    if(!client.isConnected() && ofGetElapsedTimef()-lastReconnectTry > reconnectWait && cmds.size()){
+        client.setup(hostIP,controlPort,false);
+        client.setMessageDelimiter("\r\n");
+        lastReconnectTry = ofGetElapsedTimef();
+    }
+    
+    if(client.isConnected() && cmds.size()){
+        client.send(cmds[0]);
+        cmds.erase(cmds.begin());
+        
+        if(cmds.size() ==0){
+            client.close();
+        }
+    }
+    
+};
 
 //------------------------------------------------------------------
 void ofxNeetsSwitchingRelay::turnOnSocket(int socketId, float time, float delay) {
@@ -85,9 +108,15 @@ void ofxNeetsSwitchingRelay::sendAction(string action, int socketId, float time,
         cmd = "NEUNIT="+ofToString(unitId)+",RELAY="+ofToString(socketId)+",ACTION="+action+",DELAY="+ofToString(time)+"\\CR";
     }
     
-    ofLogVerbose()<<cmd<<endl;
-    client.send(cmd);
+    cout<<cmd<<endl;
     
+    if(client.isConnected()){
+        client.send(cmd);
+    }else{
+        cmds.push_back(cmd);
+    }
+  
+
 };
 
 

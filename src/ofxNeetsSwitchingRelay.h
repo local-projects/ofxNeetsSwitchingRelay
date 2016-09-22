@@ -42,6 +42,8 @@ class ofxNeetsSwitchingRelay {
 	
 	ofxNeetsSwitchingRelay();
     ~ofxNeetsSwitchingRelay();
+    
+    void update(ofEventArgs &e);
 	
 	void setup(string ip, int port, int unitId = 1);
 	void turnOnSocket(int socketId, float time=0, float delay = 0);
@@ -50,11 +52,16 @@ class ofxNeetsSwitchingRelay {
     
     void sendAction(string action, int socketId, float time=0, float delay = 0 );
     
-    string hostURL = "http://192.168.254.252";//device default
+    string hostIP = "192.168.254.252";//device default
     int controlPort = 5000;//device default
 	int unitId = 1;
     
     ofxTCPClient client;
+    
+    float reconnectWait = 3;
+    float lastReconnectTry = 0;
+    
+    vector<string>cmds;
 };
 
 #endif
