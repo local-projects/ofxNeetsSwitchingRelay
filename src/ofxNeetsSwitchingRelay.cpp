@@ -50,35 +50,33 @@ ofxNeetsSwitchingRelay::~ofxNeetsSwitchingRelay(){
 //------------------------------------------------------------------
 void ofxNeetsSwitchingRelay::setup(string ip, int port, int uid) {
 	
-    
+    ofLogNotice("ofxNeetsSwitchingRelay")<< "Connecting to host \"" << ip << "\" port "
+	<< port << "\" uid: \"" << uid << "\"";
+
     hostIP = ip;
     controlPort = port;
     unitId = uid;
     
-    
-    client.setup(hostIP,controlPort,false);
+    client.setup(hostIP, controlPort, false);
 	client.setMessageDelimiter("\r\n");
-    
-    
+
     ofAddListener(ofEvents().update, this, &ofxNeetsSwitchingRelay::update);
 }
 
 
 void ofxNeetsSwitchingRelay::update(ofEventArgs &e){
 
-
-    if(!client.isConnected() && ofGetElapsedTimef()-lastReconnectTry > reconnectWait && cmds.size()){
+    if(!client.isConnected() && ofGetElapsedTimef() - lastReconnectTry > reconnectWait && cmds.size()){
+		ofLogWarning("ofxNeetsSwitchingRelay") << "reconnecting!";
         client.setup(hostIP,controlPort,false);
-        client.setMessageDelimiter("\r\n");
         lastReconnectTry = ofGetElapsedTimef();
     }
     
     if(client.isConnected() && cmds.size()){
         client.send(cmds[0]);
         cmds.erase(cmds.begin());
-        
-        if(cmds.size() ==0){
-            client.close();
+        if(cmds.size() == 0){
+            close();
         }
     }
     
@@ -87,16 +85,18 @@ void ofxNeetsSwitchingRelay::update(ofEventArgs &e){
 //------------------------------------------------------------------
 void ofxNeetsSwitchingRelay::turnOnSocket(int socketId, float time, float delay) {
     if(socketId<1 || socketId>4){
-        cerr<<"ofxNeetsSwitchingRelay relay range is 1 - 4"<<endl;
+        ofLogError("ofxNeetsSwitchingRelay") << "ofxNeetsSwitchingRelay relay range is 1 - 4";
         return;
     }
+	ofLogNotice("ofxNeetsSwitchingRelay")<< "turnOnSocket " << socketId;
     sendAction("SET",socketId,time,delay);
 }
 void ofxNeetsSwitchingRelay::turnOffSocket(int socketId, float time, float delay) {
     if(socketId<1 || socketId>4){
-        cerr<<"ofxNeetsSwitchingRelay relay range is 1 - 4"<<endl;
+        ofLogError("ofxNeetsSwitchingRelay") << "ofxNeetsSwitchingRelay relay range is 1 - 4";
         return;
     }
+	ofLogNotice("ofxNeetsSwitchingRelay")<< "turnOffSocket " << socketId;
     sendAction("RELEASE",socketId,time,delay);
 }
 
@@ -108,18 +108,17 @@ void ofxNeetsSwitchingRelay::sendAction(string action, int socketId, float time,
         cmd = "NEUNIT="+ofToString(unitId)+",RELAY="+ofToString(socketId)+",ACTION="+action+",DELAY="+ofToString(time)+"\\CR";
     }
     
-    cout<<cmd<<endl;
+    //ofLogNotice("ofxNeetsSwitchingRelay")<< "Sending Action: " << cmd;
     
     if(client.isConnected()){
         client.send(cmd);
     }else{
         cmds.push_back(cmd);
     }
-  
-
 };
 
 
 void ofxNeetsSwitchingRelay::close(){
     client.close();
+	ofLogNotice("ofxNeetsSwitchingRelay")<< "Closed Connection";
 };

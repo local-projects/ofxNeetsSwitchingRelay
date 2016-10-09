@@ -8,7 +8,6 @@ void ofApp::setup(){
 //--------------------------------------------------------------
 void ofApp::update(){
 
-
     if(relay.client.isConnected()){
     
         if(!isConnected){
@@ -22,7 +21,6 @@ void ofApp::update(){
     }else{
         isConnected = false;
     }
-    
 }
 
 //--------------------------------------------------------------
@@ -32,17 +30,19 @@ void ofApp::draw(){
 
 //--------------------------------------------------------------
 void ofApp::keyPressed(int key){
-    int l = key-48;
-    
-    if(status[l]){
-        relay.turnOffSocket(l);
-        status[l] = false;
-    }else{
-        relay.turnOnSocket(l);
-        status[l] = true;
-    }
-    
-    
+
+
+	if(key >= '1' && key <= '4' ){
+		int l = key - '1' + 1; //1..4
+		if(status[key]){
+			relay.turnOffSocket(l);
+			status[key] = false;
+		}else{
+			relay.turnOnSocket(l);
+			status[key] = true;
+		}
+	}
+
 }
 
 //--------------------------------------------------------------
