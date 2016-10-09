@@ -33,16 +33,8 @@
 
 
 //------------------------------------------------------------------
-ofxNeetsSwitchingRelay::ofxNeetsSwitchingRelay(){
-
-
-};
-
-
-//------------------------------------------------------------------
 ofxNeetsSwitchingRelay::~ofxNeetsSwitchingRelay(){
-    ofRemoveListener(ofEvents().update, this, &ofxNeetsSwitchingRelay::update);
-
+	waitForThread(true, 1000);
 };
 
 
@@ -56,41 +48,79 @@ bool ofxNeetsSwitchingRelay::setup(string ip, int port, int uid) {
 		ofLogNotice("ofxNeetsSwitchingRelay") << "Connecting to host \"" << ip << "\" port "
 			<< port << "\" uid: \"" << uid << "\"";
 
-		hostIP = ip;
-		controlPort = port;
+		settings.address = ip;
+		settings.port = port;
+		settings.blocking = false;
+		settings.messageDelimiter = "\r\n";
 		unitId = uid;
-
-		bool ok = client.setup(hostIP, controlPort, false);
-		client.setMessageDelimiter("\r\n");
-
-		ofAddListener(ofEvents().update, this, &ofxNeetsSwitchingRelay::update);
+		
+		ofxTCPClient tempClient;
+		bool ok = tempClient.setup(settings);
+		if(!ok){
+			ofLogError("ofxNeetsSwitchingRelay") << "Can't connect to host \"" << ip << "\" port "
+			<< port << "\" uid: \"" << uid << "\"";
+		}
+		tempClient.close();
 		isSetup = true;
 		return ok;
 	}
 	return false;
 }
 
+bool ofxNeetsSwitchingRelay::connect(ofxTCPClient & client){
 
-void ofxNeetsSwitchingRelay::update(ofEventArgs &e){
+	bool connected = client.setup(settings);
+	int numFail = 0;
+	
+	while(!connected && isThreadRunning()){ //try reconnect if not connected
+		numFail++;
+		ofLogWarning("ofxNeetsSwitchingRelay") 	<< "cant connect to relay at \"" << settings.address << ":" << settings.port
+		<< " - will keep trying... (" << numFail << ")" ;
+		int n = 100;
+		for(int i = 0; i < n; i++){
+			sleep(1000 * reconnectWait / float(n));
+			if(!isThreadRunning()) return false; //we have been asked to stop the thread, so we return early
+		}
+		connected = client.setup(settings);
+	}
+	return connected;
+}
 
-    if(!client.isConnected() && ofGetElapsedTimef() - lastReconnectTry > reconnectWait && cmds.size()){
-		ofLogWarning("ofxNeetsSwitchingRelay") << "reconnecting!";
-        client.setup(hostIP,controlPort,false);
-        lastReconnectTry = ofGetElapsedTimef();
-    }
-    
-    if(client.isConnected() && cmds.size()){
-        client.send(cmds[0]);
-        cmds.erase(cmds.begin());
-        if(cmds.size() == 0){
-            close();
-        }
-    }
-    
-};
 
-//------------------------------------------------------------------
-void ofxNeetsSwitchingRelay::turnOnSocket(int socketId, float time, float delay) {
+void ofxNeetsSwitchingRelay::threadedFunction(){
+
+	int nCommands = 0;
+	
+	lock();
+	nCommands = cmds.size();
+	unlock();
+
+	//at this point we should be connected
+	while(nCommands > 0){
+		
+		ofxTCPClient client; //each new command starts a new TCP connection!
+		bool connected = connect(client);
+
+		if(!connected){ //this will only happen if we are trying to stop the thread
+			return; //otherwise connect will keep trying forever
+		}
+		lock();
+		string cmd = cmds[0];
+		cmds.erase(cmds.begin());
+		unlock();
+
+		bool sent = client.send(cmd);
+		client.close();
+		
+		lock();
+		nCommands = cmds.size();
+		unlock();
+	}
+}
+
+
+
+void ofxNeetsSwitchingRelay::turnOnSocket(int socketId, bool blocking, float time, float delay) {
 	if (!isSetup) {
 		ofLogError("ofxNeetsSwitchingRelay") << "not setup!";
 		return;
@@ -99,10 +129,17 @@ void ofxNeetsSwitchingRelay::turnOnSocket(int socketId, float time, float delay)
         ofLogError("ofxNeetsSwitchingRelay") << "ofxNeetsSwitchingRelay relay range is 1 - 4";
         return;
     }
-	ofLogNotice("ofxNeetsSwitchingRelay")<< "turnOnSocket " << socketId;
-    sendAction("SET",socketId,time,delay);
+	ofLogNotice("ofxNeetsSwitchingRelay")<< "turnOnSocket " << " blocking: " << blocking ;
+	if(blocking){ //lets connect right
+		string cmd = createAction("SET", socketId, time, delay);
+		sendActionBlocking(cmd);
+	}else{
+		sendAction("SET",socketId,time,delay);
+	}
 }
-void ofxNeetsSwitchingRelay::turnOffSocket(int socketId, float time, float delay) {
+
+
+void ofxNeetsSwitchingRelay::turnOffSocket(int socketId, bool blocking, float time, float delay) {
 	if (!isSetup) {
 		ofLogError("ofxNeetsSwitchingRelay") << "not setup!";
 		return;
@@ -111,32 +148,51 @@ void ofxNeetsSwitchingRelay::turnOffSocket(int socketId, float time, float delay
         ofLogError("ofxNeetsSwitchingRelay") << "ofxNeetsSwitchingRelay relay range is 1 - 4";
         return;
     }
-	ofLogNotice("ofxNeetsSwitchingRelay")<< "turnOffSocket " << socketId;
-    sendAction("RELEASE",socketId,time,delay);
+	ofLogNotice("ofxNeetsSwitchingRelay")<< "turnOffSocket " << socketId << " blocking: " << blocking ;
+	
+	if(blocking){ //lets connect right
+		string cmd = createAction("RELEASE", socketId, time, delay);
+		sendActionBlocking(cmd);
+	}else{
+		  sendAction("RELEASE",socketId,time,delay);
+	}
 }
+
 
 void ofxNeetsSwitchingRelay::sendAction(string action, int socketId, float time, float delay){
 	if (!isSetup) {
 		ofLogError("ofxNeetsSwitchingRelay") << "not setup!";
 		return;
 	}
-	string cmd = "NEUNIT="+ofToString(unitId)+",RELAY="+ofToString(socketId)+",ACTION="+action+",TIME="+ofToString(time)+"\\CR";
-    
-    if(delay>0){
-        cmd = "NEUNIT="+ofToString(unitId)+",RELAY="+ofToString(socketId)+",ACTION="+action+",DELAY="+ofToString(time)+"\\CR";
-    }
-    
-    //ofLogNotice("ofxNeetsSwitchingRelay")<< "Sending Action: " << cmd;
-    
-    if(client.isConnected()){
-        client.send(cmd);
-    }else{
-        cmds.push_back(cmd);
-    }
+	string cmd = createAction(action, socketId, time, delay);
+	lock();
+	cmds.push_back(cmd);
+	unlock();
+	if(!isThreadRunning()){
+		startThread();
+	}
 };
 
+void ofxNeetsSwitchingRelay::sendActionBlocking(string cmd){
+	ofxTCPClient tempClient;
+	bool ok = tempClient.setup(settings);
+	if(ok){
+		tempClient.send(cmd);
+		tempClient.close();
+	}else{
+		ofLogError("ofxNeetsSwitchingRelay") << "cant connect to Neets Relay at " << settings.address;
+	}
+}
 
-void ofxNeetsSwitchingRelay::close(){
-    client.close();
-	ofLogNotice("ofxNeetsSwitchingRelay")<< "Closed Connection";
-};
+
+string ofxNeetsSwitchingRelay::createAction(string action, int socketId, float time, float delay){
+	string cmd;
+	if(delay > 0){
+		cmd = "NEUNIT="+ofToString(unitId)+",RELAY="+ofToString(socketId)+",ACTION="+action+",DELAY="+ofToString(time)+"\\CR";
+	}else{
+		cmd = "NEUNIT="+ofToString(unitId)+",RELAY="+ofToString(socketId)+",ACTION="+action+",TIME="+ofToString(time)+"\\CR";
+	}
+	return cmd;
+}
+
+

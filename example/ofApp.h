@@ -24,6 +24,5 @@ class ofApp : public ofBaseApp{
         map<int, bool>status;
         ofxNeetsSwitchingRelay relay;
     
-        bool isConnected = false;
-		
+	
 };

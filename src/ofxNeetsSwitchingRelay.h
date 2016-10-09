@@ -36,33 +36,35 @@
 #include "ofMain.h"
 #include "ofxNetwork.h"
 
-class ofxNeetsSwitchingRelay {
+class ofxNeetsSwitchingRelay : public ofThread {
 	
   public:
 	
-	ofxNeetsSwitchingRelay();
     ~ofxNeetsSwitchingRelay();
     
-    void update(ofEventArgs &e);
+    bool setup(string ip, int port, int unitId = 1);
+	void turnOnSocket(int socketId, bool blocking = false, float time=0, float delay = 0);
+    void turnOffSocket(int socketId, bool blocking = false, float time=0, float delay = 0);
 	
-	bool setup(string ip, int port, int unitId = 1);
-	void turnOnSocket(int socketId, float time=0, float delay = 0);
-    void turnOffSocket(int socketId, float time=0, float delay = 0);
-	void close();
-    
-    void sendAction(string action, int socketId, float time=0, float delay = 0 );
-    
-    string hostIP = "192.168.254.252";//device default
-    int controlPort = 5000;//device default
+  protected:
+	
+	ofxTCPSettings settings = ofxTCPSettings("192.168.254.252", 5000); //device factory settings
+	
 	int unitId = 1;
-    
-    ofxTCPClient client;
-    
+	
     float reconnectWait = 3;
     float lastReconnectTry = 0;
     
 	bool isSetup = false;
-    vector<string>cmds;
+    vector<string> cmds;
+	
+	void threadedFunction();
+
+	void sendAction(string action, int socketId, float time, float delay);
+	string createAction(string action, int socketId, float time, float delay);
+	void sendActionBlocking(string cmd);
+	
+	bool connect(ofxTCPClient & client);
 };
 
 #endif

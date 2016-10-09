@@ -2,25 +2,14 @@
 
 //--------------------------------------------------------------
 void ofApp::setup(){
-    relay.setup("192.168.254.252",5000);
+	ofBackground(22);
+    //relay.setup("192.168.254.252",5000);
+	relay.setup("127.0.0.1",5000);
 }
 
 //--------------------------------------------------------------
 void ofApp::update(){
 
-    if(relay.client.isConnected()){
-    
-        if(!isConnected){
-            cout<<"connected"<<endl;
-            isConnected = true;
-        }
-        string str = relay.client.receive();
-        if(str.size()){
-            cout<<str<<endl;
-        }
-    }else{
-        isConnected = false;
-    }
 }
 
 //--------------------------------------------------------------
@@ -31,18 +20,16 @@ void ofApp::draw(){
 //--------------------------------------------------------------
 void ofApp::keyPressed(int key){
 
-
 	if(key >= '1' && key <= '4' ){
 		int l = key - '1' + 1; //1..4
 		if(status[key]){
-			relay.turnOffSocket(l);
+			relay.turnOffSocket(l, true);
 			status[key] = false;
 		}else{
-			relay.turnOnSocket(l);
+			relay.turnOnSocket(l, true);
 			status[key] = true;
 		}
 	}
-
 }
 
 //--------------------------------------------------------------
