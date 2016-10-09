@@ -45,7 +45,7 @@ class ofxNeetsSwitchingRelay {
     
     void update(ofEventArgs &e);
 	
-	void setup(string ip, int port, int unitId = 1);
+	bool setup(string ip, int port, int unitId = 1);
 	void turnOnSocket(int socketId, float time=0, float delay = 0);
     void turnOffSocket(int socketId, float time=0, float delay = 0);
 	void close();
@@ -61,6 +61,7 @@ class ofxNeetsSwitchingRelay {
     float reconnectWait = 3;
     float lastReconnectTry = 0;
     
+	bool isSetup = false;
     vector<string>cmds;
 };
 
