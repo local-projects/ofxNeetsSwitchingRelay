@@ -27,7 +27,20 @@
 //
 // =============================================================================
 
+/*
+ 
+ FROM OSX COMMANDLINE
+ 
+ //set NEW LAN CONFIG
+ echo "NEUNIT=1,SETTINGS=LAN,IPADDRESS=192.168.102.16,SUBNET=255.255.255.0,GATEWAY=192.168.102.1\\CR\r\n" | ncat 192.168.254.252 5000  -v
 
+ //save cfg - make sure it replies "OK" otherwise when you cut power it will go back to its default IP
+ echo "NEUNIT=1,SAVE=TRUE\\CR\r\n" | ncat 192.168.102.16 5000 -d 1 | say
+ 
+ //activate relay port 1
+ echo "NEUNIT=1,RELAY=1,ACTION=RELEASE,TIME=0\\CR\r\n" | ncat 192.168.254.252 5000  -v
+ 
+ */
 
 #include "ofxNeetsSwitchingRelay.h"
 
@@ -181,6 +194,9 @@ void ofxNeetsSwitchingRelay::sendCmdBlocking(string cmd){
 	bool ok = tempClient.setup(settings);
 	if(ok){
 		tempClient.send(cmd);
+		ofSleepMillis(1);
+		string rec = tempClient.receiveRaw();
+		ofLogNotice() << rec;
 		tempClient.close();
 	}else{
 		ofLogError("ofxNeetsSwitchingRelay") << "cant connect to Neets Relay at " << settings.address;

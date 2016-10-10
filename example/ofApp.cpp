@@ -41,6 +41,11 @@ void ofApp::keyPressed(int key){
 
 	if (key=='s'){ //save settings on the device
 		string cmd = "NEUNIT=1,SAVE=TRUE\\CR";
+		//string cmd = "NEUNIT=1,RELAY=1,ACTION=SET,TIME=0\\CR";
+		//string cmd = "NEUNIT=1,RESET=TRUE\\CR";
+		//string cmd = "NEUNIT=1,UNITID=1\CR";
+		//string cmd = "NEUNIT=1,FACTORYDEFAULT=TRUE\\CR";
+
 		relay.sendCmdBlocking(cmd);
 	}
 
