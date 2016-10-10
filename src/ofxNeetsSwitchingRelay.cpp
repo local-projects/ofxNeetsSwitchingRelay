@@ -47,7 +47,7 @@
 
 //------------------------------------------------------------------
 ofxNeetsSwitchingRelay::~ofxNeetsSwitchingRelay(){
-	waitForThread(true, 1000);
+	waitForThread(true, 5000);
 };
 
 
