@@ -129,10 +129,10 @@ void ofxNeetsSwitchingRelay::turnOnSocket(int socketId, bool blocking, float tim
         ofLogError("ofxNeetsSwitchingRelay") << "ofxNeetsSwitchingRelay relay range is 1 - 4";
         return;
     }
-	ofLogNotice("ofxNeetsSwitchingRelay")<< "turnOnSocket " << " blocking: " << blocking ;
+	ofLogNotice("ofxNeetsSwitchingRelay")<< "turnOnSocket " << socketId << " blocking: " << blocking ;
 	if(blocking){ //lets connect right
 		string cmd = createAction("SET", socketId, time, delay);
-		sendActionBlocking(cmd);
+		sendCmdBlocking(cmd);
 	}else{
 		sendAction("SET",socketId,time,delay);
 	}
@@ -152,7 +152,7 @@ void ofxNeetsSwitchingRelay::turnOffSocket(int socketId, bool blocking, float ti
 	
 	if(blocking){ //lets connect right
 		string cmd = createAction("RELEASE", socketId, time, delay);
-		sendActionBlocking(cmd);
+		sendCmdBlocking(cmd);
 	}else{
 		  sendAction("RELEASE",socketId,time,delay);
 	}
@@ -165,6 +165,9 @@ void ofxNeetsSwitchingRelay::sendAction(string action, int socketId, float time,
 		return;
 	}
 	string cmd = createAction(action, socketId, time, delay);
+
+	ofLogNotice() << cmd;
+
 	lock();
 	cmds.push_back(cmd);
 	unlock();
@@ -173,7 +176,7 @@ void ofxNeetsSwitchingRelay::sendAction(string action, int socketId, float time,
 	}
 };
 
-void ofxNeetsSwitchingRelay::sendActionBlocking(string cmd){
+void ofxNeetsSwitchingRelay::sendCmdBlocking(string cmd){
 	ofxTCPClient tempClient;
 	bool ok = tempClient.setup(settings);
 	if(ok){

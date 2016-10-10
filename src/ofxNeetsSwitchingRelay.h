@@ -45,7 +45,10 @@ class ofxNeetsSwitchingRelay : public ofThread {
     bool setup(string ip, int port, int unitId = 1);
 	void turnOnSocket(int socketId, bool blocking = false, float time=0, float delay = 0);
     void turnOffSocket(int socketId, bool blocking = false, float time=0, float delay = 0);
-	
+
+	//send custom commands - TODO response ingored!
+	void sendCmdBlocking(string cmd);
+
   protected:
 	
 	ofxTCPSettings settings = ofxTCPSettings("192.168.254.252", 5000); //device factory settings
@@ -62,7 +65,7 @@ class ofxNeetsSwitchingRelay : public ofThread {
 
 	void sendAction(string action, int socketId, float time, float delay);
 	string createAction(string action, int socketId, float time, float delay);
-	void sendActionBlocking(string cmd);
+
 	
 	bool connect(ofxTCPClient & client);
 };
