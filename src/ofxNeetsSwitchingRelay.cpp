@@ -47,6 +47,7 @@
 
 //------------------------------------------------------------------
 ofxNeetsSwitchingRelay::~ofxNeetsSwitchingRelay(){
+
 	waitForThread(true, 5000);
 };
 
@@ -63,7 +64,7 @@ bool ofxNeetsSwitchingRelay::setup(string ip, int port, int uid) {
 
 		settings.address = ip;
 		settings.port = port;
-		settings.blocking = false;
+		settings.blocking = true;
 		settings.messageDelimiter = "\r\n";
 		unitId = uid;
 		
